@@ -11,19 +11,22 @@ return new class extends Migration
      */
     public function up()
 {
-    Schema::create('orders', function (Blueprint $table) {
-        $table->id();
-        $table->foreignId('product_id')->constrained()->onDelete('cascade');
-        $table->integer('quantity');
-        $table->decimal('total_price', 8, 2);
-        $table->timestamps();
-    });
-}
-       
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+     Schema::create('orders', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->decimal('total_amount', 10, 2);
+            $table->string('status')->default('pending');
+            $table->text('shipping_address');
+            $table->text('billing_address')->nullable();
+            $table->timestamps();
+            
+            // Add index for better performance
+            $table->index('user_id');
+            $table->index('status');
+        });
+    }
+
+    public function down()
     {
         Schema::dropIfExists('orders');
     }

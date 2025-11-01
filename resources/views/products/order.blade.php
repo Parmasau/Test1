@@ -1,197 +1,114 @@
 <x-app-layout>
     <x-slot name="title">Order {{ $product->name }} - Elchapo Café</x-slot>
 
-    <style>
-        .order-container {
-            min-height: calc(100vh - 80px);
-            background: linear-gradient(135deg, #fef7ed 0%, #fffbeb 100%);
-        }
-        
-        .product-card {
-            background: linear-gradient(135deg, #ffffff 0%, #fefdfb 100%);
-            border: 1px solid rgba(251, 191, 36, 0.2);
-            box-shadow: 0 10px 30px rgba(146, 64, 14, 0.1);
-        }
-        
-        .quantity-controls {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 1rem;
-            margin: 2rem 0;
-        }
-        
-        .quantity-btn {
-            width: 50px;
-            height: 50px;
-            border: 2px solid #d97706;
-            background: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #d97706;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .quantity-btn:hover {
-            background: #d97706;
-            color: white;
-            transform: scale(1.1);
-        }
-        
-        .quantity-display {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #92400e;
-            min-width: 60px;
-            text-align: center;
-        }
-        
-        .order-btn {
-            background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
-            transition: all 0.3s ease;
-            font-weight: 600;
-            padding: 1rem 2rem;
-            font-size: 1.25rem;
-        }
-        
-        .order-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 30px rgba(217, 119, 6, 0.4);
-        }
-        
-        .price-display {
-            background: linear-gradient(135deg, #fef3c7 0%, #fef7ed 100%);
-            border: 2px solid rgba(251, 191, 36, 0.3);
-            padding: 1rem 2rem;
-            border-radius: 15px;
-        }
-        
-        .total-price {
-            font-size: 2.5rem;
-            font-weight: bold;
-            background: linear-gradient(135deg, #92400e 0%, #d97706 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-        
-        .quantity-pulse {
-            animation: pulse 0.3s ease;
-        }
-    </style>
-
-    <div class="order-container py-8 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-4xl mx-auto">
-            <!-- Page Header -->
-            <div class="text-center mb-8 sm:mb-12">
-                <h1 class="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-amber-900 via-amber-700 to-amber-600 bg-clip-text text-transparent drop-shadow-sm mb-4">
-                    Order Product
-                </h1>
-            </div>
-
-            <!-- Product Card -->
-            <div class="product-card rounded-2xl p-6 sm:p-8">
-                <!-- Product Information -->
+    <div class="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 py-8 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-2xl mx-auto">
+            <div class="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+                <!-- Header -->
                 <div class="text-center mb-8">
-                    <h2 class="text-3xl sm:text-4xl font-bold text-amber-900 mb-4">
-                        {{ $product->name }}
-                    </h2>
-                    <p class="text-gray-600 text-lg sm:text-xl leading-relaxed mb-6">
-                        {{ $product->description ?? 'No description available' }}
-                    </p>
-                    
-                    <div class="price-display inline-block">
-                        <span class="text-2xl sm:text-3xl font-bold text-amber-900">
-                            ${{ number_format($product->price, 2) }} each
-                        </span>
+                    <h1 class="text-3xl font-bold text-amber-900">Order {{ $product->name }}</h1>
+                    <p class="text-amber-600 mt-2">Complete your order details</p>
+                </div>
+
+                <!-- Product Info -->
+                <div class="bg-amber-50 rounded-xl p-6 mb-6">
+                    <div class="flex items-center space-x-4">
+                        <div class="flex-1">
+                            <h3 class="text-xl font-semibold text-amber-900">{{ $product->name }}</h3>
+                            <p class="text-amber-700">{{ $product->description }}</p>
+                            <div class="mt-2">
+                                <span class="text-2xl font-bold text-amber-900">${{ number_format($product->price, 2) }}</span>
+                                <span class="ml-2 text-sm text-amber-600">In Stock: {{ $product->stock }}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Quantity Controls -->
-                <div class="quantity-controls">
-                    <button onclick="decreaseQuantity()" class="quantity-btn" id="decreaseBtn">-</button>
-                    <div class="quantity-display" id="quantityDisplay">1</div>
-                    <button onclick="increaseQuantity()" class="quantity-btn" id="increaseBtn">+</button>
-                </div>
-
-                <!-- Total Price -->
-                <div class="text-center mb-8">
-                    <p class="text-amber-700 text-lg mb-2">Total Amount:</p>
-                    <div class="total-price" id="totalPrice">${{ number_format($product->price, 2) }}</div>
-                </div>
-
-                <!-- Order Button -->
-                <form action="{{ route('orders.store') }}" method="POST" class="text-center">
+                <!-- Order Form -->
+                <form action="{{ route('process.order') }}" method="POST">
                     @csrf
                     <input type="hidden" name="product_id" value="{{ $product->id }}">
-                    <input type="hidden" name="quantity" id="quantityInput" value="1">
-                    <input type="hidden" name="total_price" id="totalPriceInput" value="{{ $product->price }}">
-                    
-                    <button type="submit" class="order-btn text-white rounded-xl shadow-lg mx-auto flex items-center justify-center space-x-2">
-                        <span>🛒</span>
-                        <span>Place Order</span>
-                    </button>
-                </form>
 
-                <!-- Back Link -->
-                <div class="text-center mt-6">
-                    <a href="{{ route('products.index') }}" class="text-amber-600 hover:text-amber-800 transition font-medium">
-                        ← Back to Products
-                    </a>
-                </div>
+                    <!-- Quantity -->
+                    <div class="mb-6">
+                        <label for="quantity" class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                        <select name="quantity" id="quantity" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                            @for($i = 1; $i <= min($product->stock, 10); $i++)
+                                <option value="{{ $i }}">{{ $i }}</option>
+                            @endfor
+                        </select>
+                        @error('quantity')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Shipping Address -->
+                    <div class="mb-6">
+                        <label for="shipping_address" class="block text-sm font-medium text-gray-700 mb-2">Shipping Address</label>
+                        <textarea name="shipping_address" id="shipping_address" rows="3" 
+                                  class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                  placeholder="Enter your complete shipping address" required>{{ old('shipping_address') }}</textarea>
+                        @error('shipping_address')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Billing Address -->
+                    <div class="mb-6">
+                        <label for="billing_address" class="block text-sm font-medium text-gray-700 mb-2">
+                            Billing Address 
+                            <span class="text-gray-500 text-sm">(optional)</span>
+                        </label>
+                        <textarea name="billing_address" id="billing_address" rows="3" 
+                                  class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                                  placeholder="Enter billing address if different from shipping">{{ old('billing_address') }}</textarea>
+                        @error('billing_address')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Order Summary -->
+                    <div class="bg-gray-50 rounded-xl p-4 mb-6">
+                        <h4 class="font-semibold text-gray-900 mb-2">Order Summary</h4>
+                        <div class="flex justify-between text-sm text-gray-600">
+                            <span>Product:</span>
+                            <span>{{ $product->name }}</span>
+                        </div>
+                        <div class="flex justify-between text-sm text-gray-600 mt-1">
+                            <span>Quantity:</span>
+                            <span id="summary-quantity">1</span>
+                        </div>
+                        <div class="flex justify-between text-lg font-semibold text-amber-900 mt-2">
+                            <span>Total:</span>
+                            <span id="summary-total">${{ number_format($product->price, 2) }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex space-x-4">
+                        <a href="{{ route('products.index') }}" 
+                           class="flex-1 bg-gray-500 text-white text-center py-3 px-6 rounded-lg hover:bg-gray-600 transition-colors">
+                            Cancel
+                        </a>
+                        <button type="submit" 
+                                class="flex-1 bg-amber-600 text-white py-3 px-6 rounded-lg hover:bg-amber-700 transition-colors font-semibold">
+                            Place Order
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
     <script>
-        let quantity = 1;
-        const price = {{ $product->price }};
-        
-        function updateDisplay() {
-            const quantityDisplay = document.getElementById('quantityDisplay');
-            const totalPrice = document.getElementById('totalPrice');
-            const quantityInput = document.getElementById('quantityInput');
-            const totalPriceInput = document.getElementById('totalPriceInput');
-            const decreaseBtn = document.getElementById('decreaseBtn');
-            
-            quantityDisplay.textContent = quantity;
-            quantityDisplay.classList.add('quantity-pulse');
-            setTimeout(() => quantityDisplay.classList.remove('quantity-pulse'), 300);
-            
+        // Update order summary when quantity changes
+        document.getElementById('quantity').addEventListener('change', function() {
+            const quantity = parseInt(this.value);
+            const price = {{ $product->price }};
             const total = quantity * price;
-            totalPrice.textContent = `$${total.toFixed(2)}`;
             
-            quantityInput.value = quantity;
-            totalPriceInput.value = total;
-            
-            decreaseBtn.disabled = quantity === 1;
-            decreaseBtn.style.opacity = quantity === 1 ? '0.5' : '1';
-        }
-        
-        function increaseQuantity() {
-            quantity++;
-            updateDisplay();
-        }
-        
-        function decreaseQuantity() {
-            if (quantity > 1) {
-                quantity--;
-                updateDisplay();
-            }
-        }
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            updateDisplay();
+            document.getElementById('summary-quantity').textContent = quantity;
+            document.getElementById('summary-total').textContent = '$' + total.toFixed(2);
         });
     </script>
 </x-app-layout>

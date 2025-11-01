@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Providers\RouteServiceProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,11 +25,13 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        // Authenticate and regenerate session
         $request->authenticate();
         $request->session()->regenerate();
 
-        // ✅ Use intended() to redirect to the originally requested page or dashboard
-        return redirect()->intended(route('dashboard'))->with('success', 'Welcome back to Elchapo Café!');
+        // ✅ Redirect safely to dashboard or intended route
+        return redirect()->intended(RouteServiceProvider::HOME)
+                         ->with('success', 'Welcome back to Elchapo Café!');
     }
 
     /**
@@ -41,6 +44,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/')->with('success', 'You have been logged out successfully.');
+        return redirect('/')
+            ->with('success', 'You have been logged out successfully.');
     }
 }

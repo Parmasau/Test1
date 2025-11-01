@@ -148,6 +148,12 @@
                 </div>
             @endif
 
+            @if (session('error'))
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6" role="alert">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             <!-- Products Grid -->
             @if($products->count() > 0)
                 <div class="products-grid grid gap-6 sm:gap-8">
@@ -161,6 +167,15 @@
                                 <p class="text-gray-600 mt-2 sm:mt-3 text-sm sm:text-base leading-relaxed">
                                     {{ $product->description ?? 'No description available' }}
                                 </p>
+                                @if($product->stock < 1)
+                                    <span class="inline-block bg-red-100 text-red-800 text-xs font-semibold px-2 py-1 rounded mt-2">
+                                        Out of Stock
+                                    </span>
+                                @else
+                                    <span class="inline-block bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded mt-2">
+                                        In Stock: {{ $product->stock }}
+                                    </span>
+                                @endif
                             </div>
 
                             <!-- Product Footer -->
@@ -172,10 +187,20 @@
                                 </div>
                                 <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
                                     <!-- Order Button -->
-                                    <a href="{{ route('products.order', $product) }}" 
-                                       class="order-btn text-white px-4 py-2 rounded-lg text-center text-sm sm:text-base">
-                                        🛒 Order
-                                    </a>
+                                    @if($product->stock > 0)
+                                        <form action="{{ route('cart.add', $product->id) }}" method="POST" class="inline">
+                                            @csrf
+                                            <button type="submit" 
+                                                    class="order-btn text-white px-4 py-2 rounded-lg text-center text-sm sm:text-base">
+                                                🛒 Add to Cart
+                                            </button>
+                                        </form>
+                                    @else
+                                        <button disabled 
+                                                class="bg-gray-400 text-white px-4 py-2 rounded-lg text-center text-sm sm:text-base cursor-not-allowed">
+                                            Out of Stock
+                                        </button>
+                                    @endif
                                     <div class="flex space-x-3 sm:space-x-4">
                                         <a href="{{ route('products.edit', $product) }}" 
                                            class="edit-btn action-link text-blue-600 hover:text-blue-800 text-sm sm:text-base">
@@ -205,6 +230,21 @@
                     <a href="{{ route('products.create') }}" 
                        class="add-product-btn text-white px-8 py-4 rounded-xl shadow-lg inline-block">
                         + Add Your First Product
+                    </a>
+                </div>
+            @endif
+
+            <!-- Cart Navigation -->
+            @php
+                $cart = session()->get('cart', []);
+                $cartCount = count($cart);
+            @endphp
+            @if($cartCount > 0)
+                <div class="fixed bottom-4 right-4">
+                    <a href="{{ route('cart') }}" 
+                       class="bg-amber-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center space-x-2 hover:bg-amber-700 transition-colors">
+                        <span>🛒</span>
+                        <span>Cart ({{ $cartCount }})</span>
                     </a>
                 </div>
             @endif
