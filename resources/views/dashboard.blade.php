@@ -1,281 +1,427 @@
-<x-app-layout>
-    <x-slot name="title">Dashboard - Elchapo Café</x-slot>
+@extends('layouts.app')
 
-    @php
-        $avatar = Auth::user()->avatar
-            ? asset('storage/' . Auth::user()->avatar)
-            : 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=764ba2&color=fff';
-    @endphp
+@section('title', 'Dashboard - Elchapo Café')
 
-    {{-- === NAVBAR === --}}
-    <nav class="navbar fade-in">
-        <div class="navbar-logo">☕ Elchapo Café</div>
-
-        <div class="navbar-right">
-            <a href="{{ route('dashboard') }}" 
-               class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-               <i class="fas fa-tachometer-alt"></i>
-               Dashboard
-            </a>
-
-            <a href="{{ route('products.index') }}" 
-               class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
-               <i class="fas fa-coffee"></i>
-               Products
-            </a>
-
-            <a href="{{ route('orders.index') }}" 
-               class="nav-link {{ request()->routeIs('orders.*') ? 'active' : '' }}">
-               <i class="fas fa-shopping-bag"></i>
-               Orders
-            </a>
-
-            <a href="{{ route('cart') }}" 
-               class="nav-link {{ request()->routeIs('cart') ? 'active' : '' }}">
-               <i class="fas fa-shopping-cart"></i>
-               Cart 
-               @if(session('cart') && count(session('cart')) > 0)
-                   <span class="cart-badge">{{ count(session('cart')) }}</span>
-               @endif
-            </a>
-
-            {{-- Logout --}}
-            <form method="POST" action="{{ route('logout') }}" class="inline">
-                @csrf
-                <button type="submit" class="logout-btn">
-                    <i class="fas fa-sign-out-alt"></i>
-                    Logout
-                </button>
-            </form>
-
-            {{-- Avatar --}}
-            <img src="{{ $avatar }}" alt="User Avatar" class="avatar-small" title="{{ Auth::user()->name }}">
-        </div>
-    </nav>
-
-    {{-- === DASHBOARD BODY === --}}
-    <div class="dashboard-bg fade-in">
-        @if (session('success'))
-            <div class="fade-in p-4 mb-6 text-green-800 bg-green-100 border border-green-300 rounded-xl text-center shadow-lg max-w-xl mx-auto">
-                <span class="font-semibold">✅ {{ session('success') }}</span>
-            </div>
-        @endif
-
-        @if (session('error'))
-            <div class="fade-in p-4 mb-6 text-red-800 bg-red-100 border border-red-300 rounded-xl text-center shadow-lg max-w-xl mx-auto">
-                <span class="font-semibold">❌ {{ session('error') }}</span>
-            </div>
-        @endif
-
-        <h1 class="welcome-text">Welcome to Elchapo Café ☕, {{ Auth::user()->name }}!</h1>
+@section('styles')
+<style>
+    .dashboard-bg {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 2rem 1rem;
+    }
+    
+    .welcome-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        padding: 3rem 2rem;
+        text-align: center;
+        color: white;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    
+    .welcome-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        animation: bounce 2s infinite;
+    }
+    
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% {
+            transform: translateY(0);
+        }
+        40% {
+            transform: translateY(-10px);
+        }
+        60% {
+            transform: translateY(-5px);
+        }
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 16px;
+        padding: 2rem;
+        color: white;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        background: rgba(255, 255, 255, 0.15);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    }
+    
+    .stat-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        opacity: 0.9;
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #ffd966 0%, #ffcc33 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .stat-label {
+        font-size: 1rem;
+        opacity: 0.9;
+        font-weight: 500;
+    }
+    
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .action-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 16px;
+        padding: 1.5rem;
+        color: white;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .action-card:hover {
+        transform: translateY(-3px);
+        background: rgba(255, 255, 255, 0.15);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        text-decoration: none;
+        color: white;
+    }
+    
+    .action-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+    
+    .action-content {
+        flex: 1;
+    }
+    
+    .action-title {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .action-description {
+        font-size: 0.875rem;
+        opacity: 0.8;
+    }
+    
+    .recent-activity {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        padding: 2rem;
+        color: white;
+    }
+    
+    .activity-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .activity-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: 12px;
+        margin-bottom: 0.75rem;
+        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .activity-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+    
+    .activity-content {
+        flex: 1;
+    }
+    
+    .activity-text {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+    
+    .activity-time {
+        font-size: 0.875rem;
+        opacity: 0.7;
+    }
+    
+    /* Color variants for icons */
+    .icon-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .icon-success { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); }
+    .icon-warning { background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%); }
+    .icon-info { background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%); }
+    .icon-purple { background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%); }
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .dashboard-bg {
+            padding: 1rem 0.5rem;
+        }
         
-        {{-- Stats Grid --}}
+        .welcome-card {
+            padding: 2rem 1rem;
+        }
+        
+        .welcome-icon {
+            font-size: 3rem;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .quick-actions {
+            grid-template-columns: 1fr;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+        }
+    }
+</style>
+@endsection
+
+@section('content')
+<div class="dashboard-bg">
+    <div class="max-w-7xl mx-auto">
+        <!-- Welcome Card -->
+        <div class="welcome-card">
+            <div class="welcome-icon">☕</div>
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">Welcome to Elchapo Café, {{ Auth::user()->name }}!</h1>
+            <p class="text-xl opacity-90">Start your day with the perfect brew. What would you like to do today?</p>
+        </div>
+
+        <!-- Stats Grid -->
         <div class="stats-grid">
-            <div class="dashboard-card" onclick="window.location='{{ route('products.index') }}'">
-                <div class="text-4xl mb-2">📦</div>
-                <h3 class="text-2xl font-bold mb-2">Total Products</h3>
-                <p class="text-3xl font-bold">{{ $productsCount ?? '12' }}</p>
-                <p class="text-sm opacity-75 mt-2">Click to view all products</p>
+            <div class="stat-card" onclick="window.location='{{ route('products.index') }}'">
+                <div class="stat-icon">📦</div>
+                <div class="stat-number">{{ $productsCount ?? '12' }}</div>
+                <div class="stat-label">Total Products</div>
             </div>
-
-            <div class="dashboard-card" onclick="window.location='{{ route('orders.index') }}'">
-                <div class="text-4xl mb-2">🛒</div>
-                <h3 class="text-2xl font-bold mb-2">Today's Orders</h3>
-                <p class="text-3xl font-bold">{{ $ordersToday ?? '5' }}</p>
-                <p class="text-sm opacity-75 mt-2">Click to view orders</p>
+            
+            <div class="stat-card" onclick="window.location='{{ route('orders.index') }}'">
+                <div class="stat-icon">🛒</div>
+                <div class="stat-number">{{ $ordersToday ?? '5' }}</div>
+                <div class="stat-label">Today's Orders</div>
             </div>
-
-            <div class="dashboard-card" onclick="window.location='{{ route('products.index') }}'">
-                <div class="text-4xl mb-2">⭐</div>
-                <h3 class="text-2xl font-bold mb-2">Customer Rating</h3>
-                <p class="text-3xl font-bold">4.8/5</p>
-                <p class="text-sm opacity-75 mt-2">Based on 150+ reviews</p>
+            
+            <div class="stat-card" onclick="window.location='{{ route('products.index') }}'">
+                <div class="stat-icon">⭐</div>
+                <div class="stat-number">4.8</div>
+                <div class="stat-label">Customer Rating</div>
             </div>
-
-            <div class="dashboard-card" onclick="window.location='{{ route('orders.index') }}'">
-                <div class="text-4xl mb-2">💰</div>
-                <h3 class="text-2xl font-bold mb-2">Revenue</h3>
-                <p class="text-3xl font-bold">Kshs 25,430</p>
-                <p class="text-sm opacity-75 mt-2">This month</p>
+            
+            <div class="stat-card" onclick="window.location='{{ route('orders.index') }}'">
+                <div class="stat-icon">💰</div>
+                <div class="stat-number">Kshs {{ number_format(25430, 0) }}</div>
+                <div class="stat-label">Monthly Revenue</div>
             </div>
         </div>
 
-        {{-- Quick Actions --}}
+        <!-- Quick Actions -->
         <div class="quick-actions">
-            <a href="{{ route('products.index') }}" class="btn-primary">
-                <i class="fas fa-coffee"></i>
-                Browse Products
+            <a href="{{ route('products.index') }}" class="action-card">
+                <div class="action-icon icon-primary">
+                    <i class="fas fa-coffee"></i>
+                </div>
+                <div class="action-content">
+                    <div class="action-title">Browse Products</div>
+                    <div class="action-description">Explore our coffee collection</div>
+                </div>
+                <i class="fas fa-chevron-right opacity-60"></i>
             </a>
-            <a href="{{ route('products.create') }}" class="btn-secondary">
-                <i class="fas fa-plus"></i>
-                Add New Product
+            
+            <a href="{{ route('cart') }}" class="action-card">
+                <div class="action-icon icon-success">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <div class="action-content">
+                    <div class="action-title">View Cart</div>
+                    <div class="action-description">Check your selected items</div>
+                </div>
+                <i class="fas fa-chevron-right opacity-60"></i>
             </a>
-            <a href="{{ route('cart') }}" class="btn-secondary">
-                <i class="fas fa-shopping-cart"></i>
-                View Cart
+            
+            <a href="{{ route('orders.index') }}" class="action-card">
+                <div class="action-icon icon-warning">
+                    <i class="fas fa-list-alt"></i>
+                </div>
+                <div class="action-content">
+                    <div class="action-title">My Orders</div>
+                    <div class="action-description">Track your purchases</div>
+                </div>
+                <i class="fas fa-chevron-right opacity-60"></i>
             </a>
-            <a href="{{ route('orders.index') }}" class="btn-secondary">
-                <i class="fas fa-list-alt"></i>
-                My Orders
+            
+            <a href="{{ route('products.index') }}" class="action-card">
+                <div class="action-icon icon-info">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="action-content">
+                    <div class="action-title">Quick Order</div>
+                    <div class="action-description">Fast checkout process</div>
+                </div>
+                <i class="fas fa-chevron-right opacity-60"></i>
             </a>
         </div>
 
-        {{-- Featured Products --}}
-        <div class="dashboard-card mt-8 max-w-4xl w-full">
-            <h3 class="text-2xl font-bold mb-6 text-center">🔥 Featured Products</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-white/10 rounded-lg p-4 flex items-center justify-between hover:bg-white/15 transition cursor-pointer" onclick="window.location='{{ route('products.index') }}'">
-                    <div class="flex items-center">
-                        <div class="text-2xl mr-3">☕</div>
-                        <div>
-                            <h4 class="font-bold">Espresso Blend</h4>
-                            <p class="text-sm opacity-75">Kshs 120</p>
-                        </div>
+        <!-- Recent Activity -->
+        <div class="recent-activity">
+            <h2 class="activity-title">
+                <i class="fas fa-history"></i>
+                Recent Activity
+            </h2>
+            
+            <div class="activity-list">
+                <div class="activity-item">
+                    <div class="activity-icon icon-success">
+                        <i class="fas fa-check-circle"></i>
                     </div>
-                    <button class="btn-primary text-sm py-1 px-3">
-                        <i class="fas fa-cart-plus"></i>
-                        Add
-                    </button>
+                    <div class="activity-content">
+                        <div class="activity-text">New order #0012 received</div>
+                        <div class="activity-time">2 hours ago</div>
+                    </div>
                 </div>
                 
-                <div class="bg-white/10 rounded-lg p-4 flex items-center justify-between hover:bg-white/15 transition cursor-pointer" onclick="window.location='{{ route('products.index') }}'">
-                    <div class="flex items-center">
-                        <div class="text-2xl mr-3">🍫</div>
-                        <div>
-                            <h4 class="font-bold">Mocha Delight</h4>
-                            <p class="text-sm opacity-75">Kshs 170</p>
-                        </div>
+                <div class="activity-item">
+                    <div class="activity-icon icon-primary">
+                        <i class="fas fa-shipping-fast"></i>
                     </div>
-                    <button class="btn-primary text-sm py-1 px-3">
-                        <i class="fas fa-cart-plus"></i>
-                        Add
-                    </button>
+                    <div class="activity-content">
+                        <div class="activity-text">Order #0010 is on the way</div>
+                        <div class="activity-time">5 hours ago</div>
+                    </div>
                 </div>
-            </div>
-        </div>
-
-        {{-- Recent Activity --}}
-        <div class="dashboard-card mt-6 max-w-4xl w-full">
-            <h3 class="text-2xl font-bold mb-4 text-center">📈 Recent Activity</h3>
-            <div class="space-y-3">
-                <div class="flex items-center justify-between p-3 bg-white/10 rounded-lg hover:bg-white/15 transition cursor-pointer">
-                    <div class="flex items-center">
-                        <div class="text-green-400 mr-3">✅</div>
-                        <span>New order #0012 received</span>
+                
+                <div class="activity-item">
+                    <div class="activity-icon icon-warning">
+                        <i class="fas fa-star"></i>
                     </div>
-                    <span class="text-sm opacity-75">2 hours ago</span>
+                    <div class="activity-content">
+                        <div class="activity-text">New customer review received</div>
+                        <div class="activity-time">1 day ago</div>
+                    </div>
                 </div>
-                <div class="flex items-center justify-between p-3 bg-white/10 rounded-lg hover:bg-white/15 transition cursor-pointer">
-                    <div class="flex items-center">
-                        <div class="text-blue-400 mr-3">📦</div>
-                        <span>Product "Espresso" stock updated</span>
+                
+                <div class="activity-item">
+                    <div class="activity-icon icon-info">
+                        <i class="fas fa-box"></i>
                     </div>
-                    <span class="text-sm opacity-75">5 hours ago</span>
+                    <div class="activity-content">
+                        <div class="activity-text">Product "Espresso" stock updated</div>
+                        <div class="activity-time">1 day ago</div>
+                    </div>
                 </div>
-                <div class="flex items-center justify-between p-3 bg-white/10 rounded-lg hover:bg-white/15 transition cursor-pointer">
-                    <div class="flex items-center">
-                        <div class="text-yellow-400 mr-3">⭐</div>
-                        <span>New customer review received</span>
+                
+                <div class="activity-item">
+                    <div class="activity-icon icon-purple">
+                        <i class="fas fa-gift"></i>
                     </div>
-                    <span class="text-sm opacity-75">1 day ago</span>
+                    <div class="activity-content">
+                        <div class="activity-text">Special offer: 20% off first order</div>
+                        <div class="activity-time">2 days ago</div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
+@endsection
 
-    <x-slot name="scripts">
-        <script>
-            // Add interactive features
-            document.addEventListener('DOMContentLoaded', function() {
-                // Add loading animation to cards
-                const cards = document.querySelectorAll('.dashboard-card');
-                cards.forEach((card, index) => {
-                    card.style.animationDelay = `${index * 0.1}s`;
-                });
+@section('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add animation to stat cards on load
+        const statCards = document.querySelectorAll('.stat-card');
+        statCards.forEach((card, index) => {
+            card.style.animationDelay = `${index * 0.1}s`;
+            card.classList.add('fade-in');
+        });
 
-                // Make all cards clickable
-                cards.forEach(card => {
-                    if (card.onclick) {
-                        card.style.cursor = 'pointer';
-                    }
-                });
-
-                // Update cart count in real-time
-                function updateCartCount() {
-                    const cart = {!! json_encode(session('cart', [])) !!};
-                    const cartCount = Object.keys(cart).length;
-                    const cartBadge = document.querySelector('.cart-badge');
-                    const cartLink = document.querySelector('.nav-link[href*="cart"]');
-                    
-                    if (cartCount > 0) {
-                        if (cartBadge) {
-                            cartBadge.textContent = cartCount;
-                        } else {
-                            const badge = document.createElement('span');
-                            badge.className = 'cart-badge';
-                            badge.textContent = cartCount;
-                            cartLink.appendChild(badge);
-                        }
-                        cartLink.classList.add('active');
-                    } else if (cartBadge) {
-                        cartBadge.remove();
-                    }
-                }
-
-                // Initial update
-                updateCartCount();
-
-                // Add ripple effect to buttons
-                function createRipple(event) {
-                    const button = event.currentTarget;
-                    const circle = document.createElement("span");
-                    const diameter = Math.max(button.clientWidth, button.clientHeight);
-                    const radius = diameter / 2;
-
-                    circle.style.width = circle.style.height = `${diameter}px`;
-                    circle.style.left = `${event.clientX - button.offsetLeft - radius}px`;
-                    circle.style.top = `${event.clientY - button.offsetTop - radius}px`;
-                    circle.classList.add("ripple");
-
-                    const ripple = button.getElementsByClassName("ripple")[0];
-                    if (ripple) {
-                        ripple.remove();
-                    }
-
-                    button.appendChild(circle);
-                }
-
-                // Add ripple to all buttons
-                const buttons = document.querySelectorAll('.btn-primary, .btn-secondary, .action-btn, .nav-link');
-                buttons.forEach(button => {
-                    button.addEventListener('click', createRipple);
-                });
+        // Add hover effects to activity items
+        const activityItems = document.querySelectorAll('.activity-item');
+        activityItems.forEach(item => {
+            item.addEventListener('click', function() {
+                // Add click functionality if needed
+                console.log('Activity item clicked');
             });
+        });
 
-            // Add ripple effect styles
-            const style = document.createElement('style');
-            style.textContent = `
-                .ripple {
-                    position: absolute;
-                    border-radius: 50%;
-                    background: rgba(255, 255, 255, 0.6);
-                    transform: scale(0);
-                    animation: ripple-animation 0.6s linear;
+        // Update real-time data (simulated)
+        function updateRealTimeData() {
+            // In a real app, you would fetch this from an API
+            const ordersElement = document.querySelector('.stat-number:nth-child(2)');
+            if (ordersElement) {
+                const currentOrders = parseInt(ordersElement.textContent);
+                // Simulate occasional order updates
+                if (Math.random() > 0.7) {
+                    ordersElement.textContent = currentOrders + 1;
+                    // Add a subtle animation
+                    ordersElement.style.transform = 'scale(1.1)';
+                    setTimeout(() => {
+                        ordersElement.style.transform = 'scale(1)';
+                    }, 300);
                 }
+            }
+        }
 
-                @keyframes ripple-animation {
-                    to {
-                        transform: scale(4);
-                        opacity: 0;
-                    }
-                }
-
-                .btn-primary, .btn-secondary, .action-btn, .nav-link {
-                    position: relative;
-                    overflow: hidden;
-                }
-            `;
-            document.head.appendChild(style);
-        </script>
-    </x-slot>
-</x-app-layout>
+        // Update every 30 seconds
+        setInterval(updateRealTimeData, 30000);
+    });
+</script>
+@endsection
