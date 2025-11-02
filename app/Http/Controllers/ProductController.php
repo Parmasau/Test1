@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 class ProductController extends Controller
 {
     /**
-     * Display all products (web view)
+     * Display all products with quantity controls
      */
     public function index()
     {
@@ -93,11 +93,90 @@ class ProductController extends Controller
     }
 
     /**
-     * Show order form for a specific product
+     * Show shipping form for direct purchase
      */
-    public function order(Product $product)
+    public function showShipping(Product $product, $quantity = 1)
     {
-        return view('products.order', compact('product'));
+        if ($product->stock < $quantity) {
+            return redirect()->route('products.index')
+                ->with('error', 'Not enough stock available!');
+        }
+
+        return view('products.shipping', compact('product', 'quantity'));
+    }
+
+    /**
+     * Process direct product purchase (Fixed version)
+     */
+    public function directPurchase(Request $request, Product $product)
+    {
+        // Ensure user is authenticated
+        if (!Auth::check()) {
+            return redirect()->route('login')->with('error', 'Please log in to place an order.');
+        }
+
+        $request->validate([
+            'quantity' => 'required|integer|min:1|max:' . $product->stock,
+            'shipping_address' => 'required|string|max:500',
+            'phone' => 'required|string|max:20',
+            'city' => 'required|string|max:100',
+            'payment_method' => 'required|string|in:mpesa,card',
+        ]);
+
+        // Check stock availability
+        if ($product->stock < $request->quantity) {
+            return redirect()->back()->with('error', 'Not enough stock available!');
+        }
+
+        // Calculate total (product price + shipping)
+        $subtotal = $product->price * $request->quantity;
+        $shipping = 100; // Fixed shipping cost
+        $total = $subtotal + $shipping;
+
+        // Create order with authenticated user ID
+        $order = Order::create([
+            'user_id' => Auth::id(),
+            'total_amount' => $total,
+            'status' => 'pending',
+            'shipping_address' => $request->shipping_address,
+            'phone' => $request->phone,
+            'city' => $request->city,
+            'payment_method' => $request->payment_method,
+        ]);
+
+        // Create order item
+        $order->orderItems()->create([
+            'product_id' => $product->id,
+            'quantity' => $request->quantity,
+            'price' => $product->price,
+        ]);
+
+        // Update product stock
+        $product->decrement('stock', $request->quantity);
+
+        // Redirect to payment page
+        return redirect()->route('orders.payment', $order)
+            ->with('success', 'Order confirmed! Please complete your payment.');
+    }
+
+    /**
+     * Process payment and complete order
+     */
+    public function processPayment(Request $request, Order $order)
+    {
+        // Check if user owns this order
+        if ($order->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // Update order status to processing (on the way)
+        $order->update([
+            'status' => 'processing',
+            'paid_at' => now(),
+        ]);
+
+        return redirect()->route('orders.index')
+            ->with('success', 'Payment successful! Your order is on the way.');
     }
 
     // ========== CART & ORDER METHODS ==========
@@ -227,10 +306,15 @@ class ProductController extends Controller
     }
 
     /**
-     * Process order
+     * Process order from cart
      */
     public function processOrder(Request $request)
     {
+        // Ensure user is authenticated
+        if (!Auth::check()) {
+            return redirect()->route('login')->with('error', 'Please log in to place an order.');
+        }
+
         $cart = session()->get('cart', []);
         
         if(empty($cart)) {
@@ -240,6 +324,9 @@ class ProductController extends Controller
         $request->validate([
             'shipping_address' => 'required|string|max:500',
             'billing_address' => 'nullable|string|max:500',
+            'phone' => 'required|string|max:20',
+            'city' => 'required|string|max:100',
+            'payment_method' => 'required|string|in:mpesa,card',
         ]);
 
         // Validate stock and calculate total
@@ -255,6 +342,9 @@ class ProductController extends Controller
             $total += $item['price'] * $item['quantity'];
         }
 
+        // Add shipping cost
+        $total += 100;
+
         // Create order
         $order = Order::create([
             'user_id' => Auth::id(),
@@ -262,6 +352,9 @@ class ProductController extends Controller
             'status' => 'pending',
             'shipping_address' => $request->shipping_address,
             'billing_address' => $request->billing_address ?? $request->shipping_address,
+            'phone' => $request->phone,
+            'city' => $request->city,
+            'payment_method' => $request->payment_method,
         ]);
 
         // Create order items and update stock
@@ -281,8 +374,8 @@ class ProductController extends Controller
         // Clear cart
         session()->forget('cart');
 
-        return redirect()->route('orders.show', $order->id)
-            ->with('success', 'Order placed successfully!');
+        return redirect()->route('orders.payment', $order)
+            ->with('success', 'Order placed successfully! Please proceed with payment.');
     }
 
     /**

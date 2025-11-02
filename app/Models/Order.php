@@ -15,15 +15,16 @@ class Order extends Model
         'status',
         'shipping_address',
         'billing_address',
+        'phone',
     ];
 
-    protected $casts = [
-        'total_amount' => 'decimal:2',
-    ];
-
-    // Relationship with User
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class);
     }
 }
